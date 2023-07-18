@@ -5,6 +5,8 @@ setup(
     version='0.0.1',
     description='Saves a screenshot when a test case from a pytest execution fails',
     author='Kleber Lauton',
+    url='https://github.com/kleber26/pytest-screenshot-on-failure',
+    download_url='https://github.com/kleber26/pytest-screenshot-on-failure/archive/refs/tags/v0.0.1.tar.gz',
     license='MIT',
     packages=find_packages(),
     keywords='pytest plugin test screenshot',
