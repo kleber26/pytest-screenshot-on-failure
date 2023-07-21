@@ -5,7 +5,7 @@ with open('README.md', 'r') as readme_file:
 
 setup(
     name='pytest_screenshot_on_failure',
-    version='0.0.1',
+    version='1.0.0',
     description='Saves a screenshot when a test case from a pytest execution fails',
     long_description=long_description,
     long_description_content_type='text/markdown',
