@@ -3,7 +3,7 @@ import os
 import re
 import shutil
 from datetime import datetime
-from typing import Any, Dict, Generator, Optional
+from typing import Any, Dict, Generator, Optional, cast
 
 import pytest
 from _pytest.config import Config
@@ -19,18 +19,19 @@ logging.basicConfig(level=logging.INFO)
 
 TEMP_SCREENSHOTS_DIR_NAME = 'execution is progress...'
 HISTORY_DIR_NAME = 'history'
+DEFAULT_TEST_SUITE_NAME = 'UnknownTestSuite'
 
 
 def pytest_addoption(parser: Parser) -> None:
-    parser.addoption("--save_screenshots",
-                     action="store_true",
+    parser.addoption('--save_screenshots',
+                     action='store_true',
                      default=False,
-                     help="Whenever a test fails, a screenshot will immediately be taken.")
-    parser.addoption("--screenshots_dir",
-                     action="store",
+                     help='Whenever a test fails, a screenshot will immediately be taken.')
+    parser.addoption('--screenshots_dir',
+                     action='store',
                      default='screenshots',
-                     help="""The directory where the screenshots will be saved, from project root directory.
-                     By default, they are saved in the 'screenshots' directory.""")
+                     help='''The directory where the screenshots will be saved, from project root directory.
+                     By default, they are saved in the "screenshots" directory.''')
 
 
 def pytest_sessionfinish(session: Session, exitstatus: int) -> None:
@@ -39,7 +40,7 @@ def pytest_sessionfinish(session: Session, exitstatus: int) -> None:
     See more: https://docs.pytest.org/en/7.1.x/reference/exit-codes.html
     """
     project_root_path = str(session.config.rootpath)
-    screenshots_dir = session.config.getvalue("screenshots_dir")
+    screenshots_dir = session.config.getvalue('screenshots_dir')
     screenshot_dir_path = os.path.join(project_root_path, screenshots_dir)
     temp_dir_path = os.path.join(screenshot_dir_path, TEMP_SCREENSHOTS_DIR_NAME)
     last_run_dir_path = os.path.join(screenshot_dir_path, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
@@ -48,11 +49,12 @@ def pytest_sessionfinish(session: Session, exitstatus: int) -> None:
 
 
 def pytest_configure(config: Config) -> None:
-    if not config.getvalue("save_screenshots"):
+    if not config.getvalue('save_screenshots'):
+        logging.info('Skipping screenshot: Feature is disabled by default.')
         return
 
     project_root_path = str(config.rootpath)
-    screenshots_dir = config.getvalue("screenshots_dir")
+    screenshots_dir = config.getvalue('screenshots_dir')
     screenshots_root_path = os.path.join(project_root_path, screenshots_dir)
 
     if not os.path.exists(screenshots_root_path):
@@ -67,8 +69,8 @@ def pytest_configure(config: Config) -> None:
 
 def find_web_driver_instance(test_function_arguments: Dict[str, Any]) -> Optional[WebDriver]:
     for value in test_function_arguments.values():
-        if isinstance(value, WebDriver):
-            return value
+        if hasattr(value, 'save_screenshot'):
+            return cast(WebDriver, value)
     return None
 
 
@@ -77,26 +79,28 @@ def pytest_runtest_makereport(item: Function, call: CallInfo[TResult]) -> Genera
     results_hook: _Result
     results_hook = yield
     test_result: TestReport = results_hook.get_result()
+    after_test_case_routine(test_result, pytest_function=item)
 
-    save_screenshots = item.config.getvalue("save_screenshots")
-    test_finished_phase = test_result.when == "call"
+
+def after_test_case_routine(test_result: TestReport, pytest_function: Function) -> None:
+    save_screenshots = pytest_function.config.getvalue('save_screenshots')
+    test_finished_phase = test_result.when == 'call'
     test_failed = test_result.failed
 
     if not all([save_screenshots, test_finished_phase, test_failed]):
         return
 
-    web_driver = find_web_driver_instance(test_function_arguments=item.funcargs)
+    web_driver = find_web_driver_instance(test_function_arguments=pytest_function.funcargs)
     if not web_driver:
-        logging.warning("""No Selenium Web Driver instance found in any function arguments of the test context!
-        Screenshots won't be taken.""")
+        logging.warning('''No Selenium Web Driver instance found in any function arguments of the test context!
+            Screenshots won't be taken.''')
         return
 
-    project_root_path = str(item.config.rootpath)
-    screenshots_dir = item.config.getvalue("screenshots_dir")
-    screenshot_dir_path = os.path.join(project_root_path, screenshots_dir)
-    session_dir_path = os.path.join(screenshot_dir_path, TEMP_SCREENSHOTS_DIR_NAME)
-    test_suite_name = item.parent.name if item.parent else 'UnknownTestSuite'
-    capture_screenshot(web_driver, session_dir_path, test_suite=test_suite_name, test_name=item.name)
+    project_root_path = str(pytest_function.config.rootpath)
+    screenshots_dir = pytest_function.config.getvalue('screenshots_dir')
+    session_dir_path = os.path.join(project_root_path, screenshots_dir, TEMP_SCREENSHOTS_DIR_NAME)
+    test_suite_name = pytest_function.parent.name if pytest_function.parent else DEFAULT_TEST_SUITE_NAME
+    capture_screenshot(web_driver, session_dir_path, test_suite=test_suite_name, test_name=pytest_function.name)
 
 
 def capture_screenshot(web_driver: WebDriver, session_dir_path: str, test_suite: str, test_name: str) -> None:
@@ -114,10 +118,8 @@ def capture_screenshot(web_driver: WebDriver, session_dir_path: str, test_suite:
         logging.error(f'Error while trying to take screen for failed {test_name=}. {e}')
 
 
-# TODO: GET screenshots_root_path FROM A PARAMETER
 def archive_old_screenshots(screenshots_root_path: str, screenshot_dir_name: str) -> None:
     dir_path_in_history = os.path.join(screenshots_root_path, HISTORY_DIR_NAME, screenshot_dir_name)
-
     if os.path.exists(dir_path_in_history):
         logging.warning(f'''The screenshots folder from the last execution, {dir_path_in_history}, is already archived  
         in folder in the history folder. The older screenshots will be overwritten by the newer ones.''')
@@ -129,5 +131,5 @@ def archive_old_screenshots(screenshots_root_path: str, screenshot_dir_name: str
 
 
 def match_dir_date_time_format(dir_name: str) -> bool:
-    date_time_regex = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}$'
+    date_time_regex = r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$'
     return bool(re.search(date_time_regex, dir_name))
