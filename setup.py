@@ -11,7 +11,7 @@ setup(
     long_description_content_type='text/markdown',
     author='Kleber Lauton',
     url='https://github.com/kleber26/pytest-screenshot-on-failure',
-    download_url='https://github.com/kleber26/pytest-screenshot-on-failure/archive/refs/tags/v0.0.1.tar.gz',
+    download_url='https://github.com/kleber26/pytest-screenshot-on-failure/archive/refs/tags/v1.0.0.tar.gz',
     package_dir={'': 'src'},
     py_modules=['pytest_screenshot_on_failure'],
     license='MIT',
