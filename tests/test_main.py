@@ -42,7 +42,7 @@ invalid_dir_names = [
     'asd',
     '123',
     ''
-]
+]  # yapf: disable
 
 
 @pytest.mark.parametrize('invalid_name', invalid_dir_names)
@@ -53,7 +53,7 @@ def test_dir_do_not_match_date_time_format(invalid_name: str) -> None:
 valid_dir_names = [
     '2023-07-18 15:25:03.980',
     '1998-12-31 20:04:58.763'
-]
+]  # yapf: disable
 
 
 @pytest.mark.parametrize('valid_name', valid_dir_names)
@@ -78,6 +78,7 @@ def test_archive_old_screenshots_method(mocker: MockFixture) -> None:
 
 
 def test_capture_screenshot(mocker: MockFixture) -> None:
+
     def assert_image_exist(dir_name: str) -> bool:
         return '.png' in dir_name
 
@@ -98,6 +99,7 @@ def test_capture_screenshot(mocker: MockFixture) -> None:
 
 
 def test_unable_to_capture_screenshot(mocker: MockFixture) -> None:
+
     def raise_exception(dir_path: str) -> None:
         raise Exception('Simulate exception')
 
@@ -118,10 +120,7 @@ def test_unable_to_capture_screenshot(mocker: MockFixture) -> None:
 def test_find_web_driver_instance() -> None:
     mock_web_driver = Mock(spec=WebDriver)
 
-    mock_test_function_arguments = {
-        'invalid_driver': 'web_driver',
-        'valid_driver': mock_web_driver
-    }
+    mock_test_function_arguments = {'invalid_driver': 'web_driver', 'valid_driver': mock_web_driver}
 
     assert not psf.find_web_driver_instance({}), 'Expected method to return None when not finding a WebDriver instance'
     assert psf.find_web_driver_instance(mock_test_function_arguments), '''Expected method to return True when finding 
